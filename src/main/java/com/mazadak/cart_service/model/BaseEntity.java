@@ -1,16 +1,19 @@
 package com.mazadak.cart_service.model;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 @MappedSuperclass
 @Data
+@EntityListeners(AuditingEntityListener.class)
 public class BaseEntity {
 
     @CreationTimestamp
@@ -22,8 +25,14 @@ public class BaseEntity {
     private LocalDateTime updatedAt;
 
     @Column(name = "created_by")
+    @CreatedBy
     private String createdBy;
 
     @Column(name = "updated_by")
+    @LastModifiedBy
     private String updatedBy;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+
 }
