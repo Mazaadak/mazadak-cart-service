@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -28,7 +27,7 @@ public class Cart extends BaseEntity {
     @Column(name = "cart_id", nullable = false, updatable = false)
     private UUID cartId;
 
-    @Column(name = "user_id") // allow null for guest carts
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
 
     @Column(name = "status", nullable = false)
@@ -38,13 +37,4 @@ public class Cart extends BaseEntity {
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartItem> cartItems = new ArrayList<>();
 
-    @Transient
-    public BigDecimal getTotalPrice() {
-        if (cartItems == null || cartItems.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-        return cartItems.stream()
-                .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
 }
