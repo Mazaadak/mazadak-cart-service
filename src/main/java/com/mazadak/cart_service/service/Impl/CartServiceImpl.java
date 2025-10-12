@@ -14,6 +14,7 @@ import com.mazadak.cart_service.repository.CartItemRepository;
 import com.mazadak.cart_service.repository.CartRepository;
 import com.mazadak.cart_service.service.CartService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepository;
@@ -34,25 +36,35 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional(readOnly = true)
-    public CartResponseDTO getActiveCart(UUID userId) {
-        Cart cart = cartRepository.findActiveCartByUserId(userId)
-                .orElseGet(() -> createNewCart(userId));
+    public CartResponseDTO getCart(UUID userId) {
+        log.info("getting The Active Cart for {}", userId);
+        Cart cart = getActiveCart(userId);
+        log.info("cart: {}", cart);
         return cartMapper.toCartResponseDTO(cart);
     }
 
+    private Cart getActiveCart(UUID userId) {
+        return cartRepository.findActiveCartByUserId(userId)
+                .orElseGet(() -> {
+                    log.debug("No active cart found for user: {}", userId);
+                    return createNewCart(userId);
+                });
+    }
+
     private Cart createNewCart(UUID userId) {
+        log.info("creating new cart for {}", userId);
         Cart cart = new Cart();
         cart.setUserId(userId);
         cart.setStatus(Status.ACTIVE);
+        log.info("new cart: {}", cart);
         return cartRepository.save(cart);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CartItemResponseDTO> getCartItems(UUID userId) {
-        System.out.println("getCartItems");
-        Cart cart = cartRepository.findActiveCartByUserId(userId)
-                .orElseGet(() -> createNewCart(userId));
+        log.info("getting cart items for {}", userId);
+        Cart cart = getActiveCart(userId);
         return cartItemRepository.findByCart_CartId(cart.getCartId()).stream()
                 .map(cartMapper::toCartItemResponseDTO)
                 .collect(Collectors.toList());
@@ -61,29 +73,32 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public CartItemResponseDTO addItem(UUID userId, AddItemRequest request) {
-        Cart cart = cartRepository.findActiveCartByUserId(userId)
-                .orElseGet(() -> createNewCart(userId));
-
+        log.info("adding item {} to cart for {}", request, userId);
+        Cart cart = getActiveCart(userId);
         CartItem cartItem = cartItemRepository.findByCart_CartIdAndProductId(cart.getCartId(), request.productId())
                 .map(existingItem -> {
+                    log.info("item {} already exists in cart", request.productId());
                     int newQuantity = existingItem.getQuantity() + request.quantity();
+                    log.info("new quantity: {}", newQuantity);
                     existingItem.setQuantity(newQuantity);
                     return cartItemRepository.save(existingItem);
                 })
                 .orElseGet(() -> {
+                    log.info("item {} does not exist in cart, adding new item", request.productId());
                     CartItem newItem = new CartItem();
                     newItem.setCart(cart);
                     newItem.setProductId(request.productId());
                     newItem.setQuantity(request.quantity());
                     return cartItemRepository.save(newItem);
                 });
-
+        log.info("item {} added to cart", request.productId());
         return cartMapper.toCartItemResponseDTO(cartItem);
     }
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public CartItemResponseDTO updateItemQuantity(UUID userId, UpdateItemRequest request) {
+        log.info("updating item {} quantity to {} for user {}", request.productId(), request.quantity(), userId);
         Cart cart = cartRepository.findActiveCartByUserId(userId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
 
@@ -93,7 +108,7 @@ public class CartServiceImpl implements CartService {
                     return cartItemRepository.save(existingItem);
                 })
                 .orElseThrow(() -> new CartItemNotFoundException("Item not found in cart."));
-
+        log.info("item {} quantity updated to {}", request.productId(), request.quantity());
         return cartMapper.toCartItemResponseDTO(cartItem);
     }
 
@@ -101,6 +116,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public CartItemResponseDTO reduceItemQuantity(UUID userId, UUID productId) {
+        log.info("reducing item {} quantity by 1 for user {}", productId, userId);
         Cart cart = cartRepository.findActiveCartByUserId(userId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
 
@@ -108,9 +124,11 @@ public class CartServiceImpl implements CartService {
                 .map(item -> {
                     int newQuantity = item.getQuantity() - 1;
                     if (newQuantity <= 0) {
+                        log.info("item {} quantity reduced to 0, removing item from cart", productId);
                         cartItemRepository.delete(item);
                         return null;
                     }
+                    log.info("item {} quantity reduced to {}", productId, newQuantity);
                     item.setQuantity(newQuantity);
                     return cartItemRepository.save(item);
                 })
@@ -122,6 +140,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void removeItem(UUID userId, UUID productId) {
+        log.info("removing item {} from cart for user {}", productId, userId);
         Cart cart = cartRepository.findActiveCartByUserId(userId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
 
@@ -129,16 +148,19 @@ public class CartServiceImpl implements CartService {
                 .orElseThrow(() -> new CartItemNotFoundException("Item not found in cart"));
 
         cartItemRepository.delete(cartItem);
+        log.info("item {} removed from cart", productId);
     }
 
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void clearCart(UUID userId) {
+        log.info("clearing cart for user {}", userId);
         Cart cart = cartRepository.findActiveCartByUserId(userId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
 
         cartItemRepository.deleteAllByCart_CartId(cart.getCartId());
+        log.info("cart cleared for user {}", userId);
     }
 
 }

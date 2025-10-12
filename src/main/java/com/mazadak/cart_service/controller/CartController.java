@@ -3,6 +3,7 @@ package com.mazadak.cart_service.controller;
 import com.mazadak.cart_service.dto.request.AddItemRequest;
 import com.mazadak.cart_service.dto.request.UpdateItemRequest;
 import com.mazadak.cart_service.dto.response.CartItemResponseDTO;
+import com.mazadak.cart_service.dto.response.CartResponseDTO;
 import com.mazadak.cart_service.service.CartService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -46,19 +47,11 @@ public class CartController {
         return ResponseEntity.ok(cartService.updateItemQuantity(userId, updateItemRequest));
     }
 
-    @GetMapping
+    @GetMapping("/items")
     public ResponseEntity<List<CartItemResponseDTO>> getCartItems(
             @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
 
         return ResponseEntity.ok(cartService.getCartItems(userId));
-    }
-
-    @DeleteMapping
-    public ResponseEntity<Void> clearCart(
-            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
-
-        cartService.clearCart(userId);
-        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/items/reduce/{productId}")
@@ -67,5 +60,19 @@ public class CartController {
             @Valid @PathVariable UUID productId ) {
 
         return ResponseEntity.ok(cartService.reduceItemQuantity(userId, productId));
+    }
+    @DeleteMapping
+    public ResponseEntity<Void> clearCart(
+            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
+
+        cartService.clearCart(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<CartResponseDTO> getCart(
+            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
+
+        return ResponseEntity.ok(cartService.getCart(userId));
     }
 }

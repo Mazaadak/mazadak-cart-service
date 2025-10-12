@@ -15,7 +15,7 @@ public interface CartService {
      * Creates a new cart if one doesn't exist.
      * @param userId
      */
-    CartResponseDTO getActiveCart(UUID userId);
+    CartResponseDTO getCart(UUID userId);
 
     /**
      * Retrieves all items in the active cart for a user.
