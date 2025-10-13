@@ -1,10 +1,9 @@
-server:
-  port: 18082
 spring:
   application:
     name: cart-service
   config:
-    import: optional:configserver:localhost:18071
+      #import: "configserver:localhost:18071"
+      import: "configserver:http://localhost:18071"
 
   jpa:
     hibernate:
