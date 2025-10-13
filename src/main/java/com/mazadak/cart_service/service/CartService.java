@@ -36,7 +36,7 @@ public interface CartService {
      * @param userId
      * @param request
      */
-    CartItemResponseDTO updateItemQuantity(UUID userId, UpdateItemRequest request);
+    CartItemResponseDTO updateItemQuantity(UUID userId, UUID productId, UpdateItemRequest request);
 
 
     /**
@@ -44,7 +44,7 @@ public interface CartService {
      * @param userId
      * @param productId
      */
-    CartItemResponseDTO reduceItemQuantity(UUID userId, UUID productId);
+    CartItemResponseDTO reduceItemQuantity(UUID userId, UUID productId, int quantity);
 
     /**
      * Removes an item from the active cart for a user.

@@ -6,6 +6,7 @@ import com.mazadak.cart_service.dto.response.CartItemResponseDTO;
 import com.mazadak.cart_service.dto.response.CartResponseDTO;
 import com.mazadak.cart_service.service.CartService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -39,12 +40,13 @@ public class CartController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/items")
+    @PutMapping("/items/{productId}")
     public ResponseEntity<CartItemResponseDTO> updateItemQuantity(
             @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId,
+            @PathVariable @NotNull(message = "Product ID is required") UUID productId,
             @Valid @RequestBody UpdateItemRequest updateItemRequest) {
 
-        return ResponseEntity.ok(cartService.updateItemQuantity(userId, updateItemRequest));
+        return ResponseEntity.ok(cartService.updateItemQuantity(userId,productId, updateItemRequest));
     }
 
     @GetMapping("/items")
@@ -54,12 +56,13 @@ public class CartController {
         return ResponseEntity.ok(cartService.getCartItems(userId));
     }
 
-    @PostMapping("/items/reduce/{productId}")
+    @PatchMapping("/items/reduce/{productId}")
     public ResponseEntity<CartItemResponseDTO> reduceItemQuantity(
             @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId,
-            @Valid @PathVariable UUID productId ) {
+            @Valid @PathVariable UUID productId ,
+            @Min(value = 1, message = "Quantity must be at least 1") @RequestParam(defaultValue = "1") int quantity) {
 
-        return ResponseEntity.ok(cartService.reduceItemQuantity(userId, productId));
+        return ResponseEntity.ok(cartService.reduceItemQuantity(userId, productId, quantity));
     }
     @DeleteMapping
     public ResponseEntity<Void> clearCart(

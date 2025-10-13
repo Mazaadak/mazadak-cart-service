@@ -97,32 +97,32 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public CartItemResponseDTO updateItemQuantity(UUID userId, UpdateItemRequest request) {
-        log.info("updating item {} quantity to {} for user {}", request.productId(), request.quantity(), userId);
+    public CartItemResponseDTO updateItemQuantity(UUID userId, UUID productId, UpdateItemRequest request) {
+        log.info("updating item {} quantity to {} for user {}",productId, request.quantity(), userId);
         Cart cart = cartRepository.findActiveCartByUserId(userId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
 
-        CartItem cartItem = cartItemRepository.findByCart_CartIdAndProductId(cart.getCartId(), request.productId())
+        CartItem cartItem = cartItemRepository.findByCart_CartIdAndProductId(cart.getCartId(),productId)
                 .map(existingItem -> {
                     existingItem.setQuantity(request.quantity());
                     return cartItemRepository.save(existingItem);
                 })
                 .orElseThrow(() -> new CartItemNotFoundException("Item not found in cart."));
-        log.info("item {} quantity updated to {}", request.productId(), request.quantity());
+        log.info("item {} quantity updated to {}",productId, request.quantity());
         return cartMapper.toCartItemResponseDTO(cartItem);
     }
 
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public CartItemResponseDTO reduceItemQuantity(UUID userId, UUID productId) {
-        log.info("reducing item {} quantity by 1 for user {}", productId, userId);
+    public CartItemResponseDTO reduceItemQuantity(UUID userId, UUID productId, int quantity) {
+        log.info("reducing item {} quantity for user {}", productId, userId);
         Cart cart = cartRepository.findActiveCartByUserId(userId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
 
         CartItem cartItem = cartItemRepository.findByCart_CartIdAndProductId(cart.getCartId(), productId)
                 .map(item -> {
-                    int newQuantity = item.getQuantity() - 1;
+                    int newQuantity = item.getQuantity() - quantity;
                     if (newQuantity <= 0) {
                         log.info("item {} quantity reduced to 0, removing item from cart", productId);
                         cartItemRepository.delete(item);
