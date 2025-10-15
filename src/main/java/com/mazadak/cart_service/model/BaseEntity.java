@@ -32,7 +32,7 @@ public class BaseEntity {
     @LastModifiedBy
     private String updatedBy;
 
-    @Column(name = "deleted")
+    @Column(name = "deleted", nullable = false)
     private boolean deleted;
 
 }
