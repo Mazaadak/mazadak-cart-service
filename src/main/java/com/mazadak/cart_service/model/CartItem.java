@@ -3,10 +3,7 @@ package com.mazadak.cart_service.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.UUID;
 
@@ -15,6 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@ToString(exclude = "cart")
 @Table(name = "cart_item",
         uniqueConstraints = {@UniqueConstraint(columnNames = {"cart_id", "product_id"})},
         indexes = {

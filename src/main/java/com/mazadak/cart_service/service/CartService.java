@@ -58,4 +58,16 @@ public interface CartService {
      * @param userId
      */
     void clearCart(UUID userId);
+
+    /**
+     * Activates the active cart for a user.
+     * @param userId
+     */
+    void activateCart(UUID userId);
+
+    /**
+     * Deactivates the active cart for a user.
+     * @param userId
+     */
+    void deactivateCart(UUID userId);
 }

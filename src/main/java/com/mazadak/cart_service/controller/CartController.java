@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/carts")
 @RequiredArgsConstructor
+@Slf4j
 public class CartController {
     private final CartService cartService;
 
@@ -64,10 +66,10 @@ public class CartController {
 
         return ResponseEntity.ok(cartService.reduceItemQuantity(userId, productId, quantity));
     }
-    @DeleteMapping
+    @PostMapping("/clear")
     public ResponseEntity<Void> clearCart(
             @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
-
+        log.info("Clearing cart for user from controller {}", userId);
         cartService.clearCart(userId);
         return ResponseEntity.noContent().build();
     }
@@ -77,5 +79,21 @@ public class CartController {
             @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
 
         return ResponseEntity.ok(cartService.getCart(userId));
+    }
+
+    @PostMapping("/activate")
+    public ResponseEntity<Void> activateCart(
+            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
+
+        cartService.activateCart(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/deactivate")
+    public ResponseEntity<Void> deactivateCart(
+            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
+
+        cartService.deactivateCart(userId);
+        return ResponseEntity.noContent().build();
     }
 }
