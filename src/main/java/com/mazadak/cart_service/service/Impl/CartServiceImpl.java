@@ -4,6 +4,7 @@ import com.mazadak.cart_service.dto.request.AddItemRequest;
 import com.mazadak.cart_service.dto.request.UpdateItemRequest;
 import com.mazadak.cart_service.dto.response.CartItemResponseDTO;
 import com.mazadak.cart_service.dto.response.CartResponseDTO;
+import com.mazadak.cart_service.exception.CartIsNotActiveException;
 import com.mazadak.cart_service.exception.CartItemNotFoundException;
 import com.mazadak.cart_service.exception.CartNotFoundException;
 import com.mazadak.cart_service.mapper.CartMapper;
@@ -38,15 +39,15 @@ public class CartServiceImpl implements CartService {
     @Transactional(readOnly = true)
     public CartResponseDTO getCart(UUID userId) {
         log.info("getting The Active Cart for {}", userId);
-        Cart cart = getActiveCart(userId);
+        Cart cart = getUserCart(userId);
         log.info("cart: {}", cart);
         return cartMapper.toCartResponseDTO(cart);
     }
 
-    private Cart getActiveCart(UUID userId) {
-        return cartRepository.findActiveCartByUserId(userId)
+    private Cart getUserCart(UUID userId) {
+        return cartRepository.findCartByUserId(userId)
                 .orElseGet(() -> {
-                    log.debug("No active cart found for user: {}", userId);
+                    log.debug("No cart found for user: {}", userId);
                     return createNewCart(userId);
                 });
     }
@@ -64,7 +65,7 @@ public class CartServiceImpl implements CartService {
     @Transactional(readOnly = true)
     public List<CartItemResponseDTO> getCartItems(UUID userId) {
         log.info("getting cart items for {}", userId);
-        Cart cart = getActiveCart(userId);
+        Cart cart = getUserCart(userId);
         return cartItemRepository.findByCart_CartId(cart.getCartId()).stream()
                 .map(cartMapper::toCartItemResponseDTO)
                 .collect(Collectors.toList());
@@ -74,7 +75,10 @@ public class CartServiceImpl implements CartService {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public CartItemResponseDTO addItem(UUID userId, AddItemRequest request) {
         log.info("adding item {} to cart for {}", request, userId);
-        Cart cart = getActiveCart(userId);
+        Cart cart = getUserCart(userId);
+
+       checkCartStatus(cart);
+
         CartItem cartItem = cartItemRepository.findByCart_CartIdAndProductId(cart.getCartId(), request.productId())
                 .map(existingItem -> {
                     log.info("item {} already exists in cart", request.productId());
@@ -99,8 +103,10 @@ public class CartServiceImpl implements CartService {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public CartItemResponseDTO updateItemQuantity(UUID userId, UUID productId, UpdateItemRequest request) {
         log.info("updating item {} quantity to {} for user {}",productId, request.quantity(), userId);
-        Cart cart = cartRepository.findActiveCartByUserId(userId)
+        Cart cart = cartRepository.findCartByUserId(userId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
+
+        checkCartStatus(cart);
 
         CartItem cartItem = cartItemRepository.findByCart_CartIdAndProductId(cart.getCartId(),productId)
                 .map(existingItem -> {
@@ -117,8 +123,10 @@ public class CartServiceImpl implements CartService {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public CartItemResponseDTO reduceItemQuantity(UUID userId, UUID productId, int quantity) {
         log.info("reducing item {} quantity for user {}", productId, userId);
-        Cart cart = cartRepository.findActiveCartByUserId(userId)
+        Cart cart = cartRepository.findCartByUserId(userId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
+
+        checkCartStatus(cart);
 
         CartItem cartItem = cartItemRepository.findByCart_CartIdAndProductId(cart.getCartId(), productId)
                 .map(item -> {
@@ -141,8 +149,10 @@ public class CartServiceImpl implements CartService {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void removeItem(UUID userId, UUID productId) {
         log.info("removing item {} from cart for user {}", productId, userId);
-        Cart cart = cartRepository.findActiveCartByUserId(userId)
+        Cart cart = cartRepository.findCartByUserId(userId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
+
+        checkCartStatus(cart);
 
         CartItem cartItem = cartItemRepository.findByCart_CartIdAndProductId(cart.getCartId(), productId)
                 .orElseThrow(() -> new CartItemNotFoundException("Item not found in cart"));
@@ -156,11 +166,38 @@ public class CartServiceImpl implements CartService {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void clearCart(UUID userId) {
         log.info("clearing cart for user {}", userId);
-        Cart cart = cartRepository.findActiveCartByUserId(userId)
+        Cart cart = cartRepository.findCartByUserId(userId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
 
         cartItemRepository.deleteAllByCart_CartId(cart.getCartId());
         log.info("cart cleared for user {}", userId);
+    }
+
+    public void checkCartStatus(Cart cart) {
+        if(cart.getStatus() == Status.INACTIVE) {
+            log.info("Cart is not active Checkout is processing");
+            throw new CartIsNotActiveException("Cart is not active Checkout is processing");
+        }
+    }
+
+    @Override
+    public void activateCart(UUID userId) {
+        log.info("activating cart for user {}", userId);
+        Cart cart = cartRepository.findCartByUserId(userId)
+                .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
+        cart.setStatus(Status.ACTIVE);
+        cartRepository.save(cart);
+        log.info("cart activated for user {}", userId);
+    }
+
+    @Override
+    public void deactivateCart(UUID userId) {
+        log.info("deactivating cart for user {}", userId);
+        Cart cart = cartRepository.findCartByUserId(userId)
+                .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
+        cart.setStatus(Status.INACTIVE);
+        cartRepository.save(cart);
+        log.info("cart deactivated for user {}", userId);
     }
 
 }
