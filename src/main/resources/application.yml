@@ -15,5 +15,3 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   flyway:
     enabled: false
-server:
-  port: 18087
