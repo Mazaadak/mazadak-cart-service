@@ -1,9 +1,13 @@
 package com.mazadak.cart_service.service.Impl;
 
+import com.mazadak.cart_service.client.ProductClient;
+import com.mazadak.cart_service.dto.entity.ProductImageDTO;
 import com.mazadak.cart_service.dto.request.AddItemRequest;
 import com.mazadak.cart_service.dto.request.UpdateItemRequest;
 import com.mazadak.cart_service.dto.response.CartItemResponseDTO;
 import com.mazadak.cart_service.dto.response.CartResponseDTO;
+import com.mazadak.cart_service.dto.response.DetailedCartItemResponseDTO;
+import com.mazadak.cart_service.dto.response.ProductResponseDTO;
 import com.mazadak.cart_service.exception.CartIsNotActiveException;
 import com.mazadak.cart_service.exception.CartItemNotFoundException;
 import com.mazadak.cart_service.exception.CartNotFoundException;
@@ -20,8 +24,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +41,8 @@ public class CartServiceImpl implements CartService {
     private final CartItemRepository cartItemRepository;
 
     private final CartMapper cartMapper;
+
+    private final ProductClient productClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -198,6 +207,54 @@ public class CartServiceImpl implements CartService {
         cart.setStatus(Status.INACTIVE);
         cartRepository.save(cart);
         log.info("cart deactivated for user {}", userId);
+    }
+
+    @Override
+    public List<DetailedCartItemResponseDTO> getDetailedCartItems(UUID userId) {
+        log.info("getting detailed cart items for user {} ", userId);
+
+        Cart cart = getUserCart(userId);
+
+        List<CartItem> cartItems = cart.getCartItems();
+
+        if(cartItems.isEmpty()){
+            log.info("no cartItems found for user {}", userId);
+            return new ArrayList<>();
+        }
+
+        List<UUID> productIds = cartItems.stream().map(CartItem::getProductId).collect(Collectors.toList());
+        List<ProductResponseDTO> products = productClient.getProductsByIds(productIds).getBody();
+        // Mapping ProductId to ProductResponseDTO for fast lookup
+        Map<UUID,ProductResponseDTO> productMap = products.stream().collect(Collectors.toMap(ProductResponseDTO::productId, Function.identity()));
+
+        List<DetailedCartItemResponseDTO> detailedCartItems = new ArrayList<>();
+        for (CartItem cartItem : cartItems) {
+            ProductResponseDTO product = productMap.get(cartItem.getProductId());
+            if (product == null) {
+                log.error("Product not found: {}", cartItem.getProductId());
+                throw new RuntimeException("Product not found: " + cartItem.getProductId());
+            }
+
+            String primaryImage = product.images().stream()
+                    .filter(ProductImageDTO::isPrimary)
+                    .findFirst()
+                    .map(ProductImageDTO::imageUri)
+                    .orElseGet(() -> product.images().isEmpty() ? null : product.images().get(0).imageUri());
+
+            DetailedCartItemResponseDTO detailedCartItem = new DetailedCartItemResponseDTO(
+                    cartItem.getProductId(),
+                    cartItem.getQuantity(),
+                    product.title(),
+                    product.description(),
+                    product.price(),
+                    primaryImage
+            );
+
+            detailedCartItems.add(detailedCartItem);
+
+            log.info("Detailed Cart Item for product {} is {}", cartItem.getProductId(), detailedCartItem);
+        }
+        return detailedCartItems;
     }
 
 }

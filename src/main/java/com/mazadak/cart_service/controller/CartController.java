@@ -4,6 +4,7 @@ import com.mazadak.cart_service.dto.request.AddItemRequest;
 import com.mazadak.cart_service.dto.request.UpdateItemRequest;
 import com.mazadak.cart_service.dto.response.CartItemResponseDTO;
 import com.mazadak.cart_service.dto.response.CartResponseDTO;
+import com.mazadak.cart_service.dto.response.DetailedCartItemResponseDTO;
 import com.mazadak.cart_service.service.CartService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -27,7 +28,7 @@ public class CartController {
 
     @PostMapping("/items")
     public ResponseEntity<CartItemResponseDTO> addItem(
-            @RequestHeader("user-id")  @NotNull(message = "User ID is required") UUID userId,
+            @RequestHeader("X-User-Id")  @NotNull(message = "User ID is required") UUID userId,
             @Valid @RequestBody AddItemRequest addItemRequest) {
 
         return ResponseEntity.ok(cartService.addItem(userId, addItemRequest));
@@ -35,7 +36,7 @@ public class CartController {
 
     @DeleteMapping("/items/{productId}")
     public ResponseEntity<Void> removeItem(
-            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId,
+            @RequestHeader("X-User-Id") @NotNull(message = "User ID is required") UUID userId,
             @PathVariable @NotNull(message = "Product ID is required") UUID productId) {
 
         cartService.removeItem(userId, productId);
@@ -44,7 +45,7 @@ public class CartController {
 
     @PutMapping("/items/{productId}")
     public ResponseEntity<CartItemResponseDTO> updateItemQuantity(
-            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId,
+            @RequestHeader("X-User-Id") @NotNull(message = "User ID is required") UUID userId,
             @PathVariable @NotNull(message = "Product ID is required") UUID productId,
             @Valid @RequestBody UpdateItemRequest updateItemRequest) {
 
@@ -53,14 +54,14 @@ public class CartController {
 
     @GetMapping("/items")
     public ResponseEntity<List<CartItemResponseDTO>> getCartItems(
-            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
+            @RequestHeader("X-User-Id") @NotNull(message = "User ID is required") UUID userId) {
 
         return ResponseEntity.ok(cartService.getCartItems(userId));
     }
 
     @PatchMapping("/items/reduce/{productId}")
     public ResponseEntity<CartItemResponseDTO> reduceItemQuantity(
-            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId,
+            @RequestHeader("X-User-Id") @NotNull(message = "User ID is required") UUID userId,
             @Valid @PathVariable UUID productId ,
             @Min(value = 1, message = "Quantity must be at least 1") @RequestParam(defaultValue = "1") int quantity) {
 
@@ -68,7 +69,7 @@ public class CartController {
     }
     @PostMapping("/clear")
     public ResponseEntity<Void> clearCart(
-            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
+            @RequestHeader("X-User-Id") @NotNull(message = "User ID is required") UUID userId) {
         log.info("Clearing cart for user from controller {}", userId);
         cartService.clearCart(userId);
         return ResponseEntity.noContent().build();
@@ -76,14 +77,14 @@ public class CartController {
 
     @GetMapping
     public ResponseEntity<CartResponseDTO> getCart(
-            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
+            @RequestHeader("X-User-Id") @NotNull(message = "User ID is required") UUID userId) {
 
         return ResponseEntity.ok(cartService.getCart(userId));
     }
 
     @PostMapping("/activate")
     public ResponseEntity<Void> activateCart(
-            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
+            @RequestHeader("X-User-Id") @NotNull(message = "User ID is required") UUID userId) {
 
         cartService.activateCart(userId);
         return ResponseEntity.noContent().build();
@@ -91,9 +92,16 @@ public class CartController {
 
     @PostMapping("/deactivate")
     public ResponseEntity<Void> deactivateCart(
-            @RequestHeader("user-id") @NotNull(message = "User ID is required") UUID userId) {
+            @RequestHeader("X-User-Id") @NotNull(message = "User ID is required") UUID userId) {
 
         cartService.deactivateCart(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("items/detailed")
+    public ResponseEntity<List<DetailedCartItemResponseDTO>> getDetailedCartItems(
+            @RequestHeader("X-User-Id") @NotNull(message = "User ID is required") UUID userId) {
+
+        return ResponseEntity.ok(cartService.getDetailedCartItems(userId));
     }
 }

@@ -4,6 +4,7 @@ import com.mazadak.cart_service.dto.request.AddItemRequest;
 import com.mazadak.cart_service.dto.request.UpdateItemRequest;
 import com.mazadak.cart_service.dto.response.CartItemResponseDTO;
 import com.mazadak.cart_service.dto.response.CartResponseDTO;
+import com.mazadak.cart_service.dto.response.DetailedCartItemResponseDTO;
 
 import java.util.List;
 import java.util.UUID;
@@ -45,6 +46,8 @@ public interface CartService {
      * @param productId
      */
     CartItemResponseDTO reduceItemQuantity(UUID userId, UUID productId, int quantity);
+
+    List<DetailedCartItemResponseDTO> getDetailedCartItems(UUID userId);
 
     /**
      * Removes an item from the active cart for a user.
