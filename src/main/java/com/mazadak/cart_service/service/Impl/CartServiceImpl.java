@@ -210,6 +210,13 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
+    public Boolean isActive(UUID userId) {
+        Cart cart = getUserCart(userId);
+
+        return cart.getStatus().equals(Status.ACTIVE);
+    }
+
+    @Override
     public List<DetailedCartItemResponseDTO> getDetailedCartItems(UUID userId) {
         log.info("getting detailed cart items for user {} ", userId);
 
