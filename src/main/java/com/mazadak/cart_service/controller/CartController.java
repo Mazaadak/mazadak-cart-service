@@ -104,4 +104,10 @@ public class CartController {
 
         return ResponseEntity.ok(cartService.getDetailedCartItems(userId));
     }
+
+    @GetMapping("/is-active")
+    public ResponseEntity<Boolean> isActive(
+            @RequestHeader("X-User-Id") @NotNull UUID userId) {
+        return ResponseEntity.ok(cartService.isActive(userId));
+    }
 }

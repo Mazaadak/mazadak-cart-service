@@ -5,6 +5,7 @@ import com.mazadak.cart_service.dto.request.UpdateItemRequest;
 import com.mazadak.cart_service.dto.response.CartItemResponseDTO;
 import com.mazadak.cart_service.dto.response.CartResponseDTO;
 import com.mazadak.cart_service.dto.response.DetailedCartItemResponseDTO;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 import java.util.UUID;
@@ -73,4 +74,6 @@ public interface CartService {
      * @param userId
      */
     void deactivateCart(UUID userId);
+
+    Boolean isActive(@NotNull UUID userId);
 }
