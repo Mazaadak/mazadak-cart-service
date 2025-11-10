@@ -8,9 +8,6 @@ import com.mazadak.cart_service.dto.response.CartItemResponseDTO;
 import com.mazadak.cart_service.dto.response.CartResponseDTO;
 import com.mazadak.cart_service.dto.response.DetailedCartItemResponseDTO;
 import com.mazadak.cart_service.dto.response.ProductResponseDTO;
-import com.mazadak.cart_service.exception.CartIsNotActiveException;
-import com.mazadak.cart_service.exception.CartItemNotFoundException;
-import com.mazadak.cart_service.exception.CartNotFoundException;
 import com.mazadak.cart_service.mapper.CartMapper;
 import com.mazadak.cart_service.model.Cart;
 import com.mazadak.cart_service.model.CartItem;
@@ -18,6 +15,8 @@ import com.mazadak.cart_service.model.enums.Status;
 import com.mazadak.cart_service.repository.CartItemRepository;
 import com.mazadak.cart_service.repository.CartRepository;
 import com.mazadak.cart_service.service.CartService;
+import com.mazadak.common.exception.domain.cart.CartIsNotActiveException;
+import com.mazadak.common.exception.shared.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -113,7 +112,7 @@ public class CartServiceImpl implements CartService {
     public CartItemResponseDTO updateItemQuantity(UUID userId, UUID productId, UpdateItemRequest request) {
         log.info("updating item {} quantity to {} for user {}",productId, request.quantity(), userId);
         Cart cart = cartRepository.findCartByUserId(userId)
-                .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart", "userId", userId.toString()));
 
         checkCartStatus(cart);
 
@@ -122,7 +121,7 @@ public class CartServiceImpl implements CartService {
                     existingItem.setQuantity(request.quantity());
                     return cartItemRepository.save(existingItem);
                 })
-                .orElseThrow(() -> new CartItemNotFoundException("Item not found in cart."));
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found in cart."));
         log.info("item {} quantity updated to {}",productId, request.quantity());
         return cartMapper.toCartItemResponseDTO(cartItem);
     }
@@ -133,7 +132,7 @@ public class CartServiceImpl implements CartService {
     public CartItemResponseDTO reduceItemQuantity(UUID userId, UUID productId, int quantity) {
         log.info("reducing item {} quantity for user {}", productId, userId);
         Cart cart = cartRepository.findCartByUserId(userId)
-                .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart", "userId", userId.toString()));
 
         checkCartStatus(cart);
 
@@ -149,7 +148,7 @@ public class CartServiceImpl implements CartService {
                     item.setQuantity(newQuantity);
                     return cartItemRepository.save(item);
                 })
-                .orElseThrow(() -> new CartItemNotFoundException("Item not found in cart"));
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found in cart"));
         return cartMapper.toCartItemResponseDTO(cartItem);
     }
 
@@ -159,12 +158,12 @@ public class CartServiceImpl implements CartService {
     public void removeItem(UUID userId, UUID productId) {
         log.info("removing item {} from cart for user {}", productId, userId);
         Cart cart = cartRepository.findCartByUserId(userId)
-                .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart", "userId", userId.toString()));
 
         checkCartStatus(cart);
 
         CartItem cartItem = cartItemRepository.findByCart_CartIdAndProductId(cart.getCartId(), productId)
-                .orElseThrow(() -> new CartItemNotFoundException("Item not found in cart"));
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found in cart"));
 
         cartItemRepository.delete(cartItem);
         log.info("item {} removed from cart", productId);
@@ -176,7 +175,7 @@ public class CartServiceImpl implements CartService {
     public void clearCart(UUID userId) {
         log.info("clearing cart for user {}", userId);
         Cart cart = cartRepository.findCartByUserId(userId)
-                .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart", "userId", userId.toString()));
 
         cartItemRepository.deleteAllByCart_CartId(cart.getCartId());
         log.info("cart cleared for user {}", userId);
@@ -193,7 +192,7 @@ public class CartServiceImpl implements CartService {
     public void activateCart(UUID userId) {
         log.info("activating cart for user {}", userId);
         Cart cart = cartRepository.findCartByUserId(userId)
-                .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart", "userId", userId.toString()));
         cart.setStatus(Status.ACTIVE);
         cartRepository.save(cart);
         log.info("cart activated for user {}", userId);
@@ -203,7 +202,7 @@ public class CartServiceImpl implements CartService {
     public void deactivateCart(UUID userId) {
         log.info("deactivating cart for user {}", userId);
         Cart cart = cartRepository.findCartByUserId(userId)
-                .orElseThrow(() -> new CartNotFoundException("Cart not found for user"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart", "userId", userId.toString()));
         cart.setStatus(Status.INACTIVE);
         cartRepository.save(cart);
         log.info("cart deactivated for user {}", userId);
