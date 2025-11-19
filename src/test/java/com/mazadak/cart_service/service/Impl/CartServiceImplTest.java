@@ -277,6 +277,25 @@ class CartServiceImplTest {
             verify(cartItemRepository, never()).delete(any());
         }
 
+        @Test
+        @DisplayName("Should remove item when quantity becomes zero and return null")
+        void shouldRemoveItemWhenQuantityBecomesZero() {
+            // Arrange
+            cartItem.setQuantity(2);
+            when(cartRepository.findCartByUserId(userId)).thenReturn(Optional.of(cart));
+            when(cartItemRepository.findByCart_CartIdAndProductId(cartId, productId))
+                    .thenReturn(Optional.of(cartItem));
+
+            // Act
+            CartItemResponseDTO result = cartService.reduceItemQuantity(userId, productId, 2);
+
+            // Assert
+            assertThat(result).isNull();
+
+            verify(cartItemRepository).delete(argThat(item -> item.getQuantity() == 0 ));
+            verify(cartItemRepository, never()).save(any());
+            verify(cartMapper).toCartItemResponseDTO(cartItem);
+        }
     }
 
     @Nested

@@ -142,7 +142,8 @@ public class CartServiceImpl implements CartService {
                     if (newQuantity <= 0) {
                         log.info("item {} quantity reduced to 0, removing item from cart", productId);
                         cartItemRepository.delete(item);
-                        return null;
+                        item.setQuantity(0); // Just to prevent null pointer exception while mapping
+                        return item;
                     }
                     log.info("item {} quantity reduced to {}", productId, newQuantity);
                     item.setQuantity(newQuantity);
